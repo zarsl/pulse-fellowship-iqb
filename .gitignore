@@ -13,3 +13,9 @@ data/
 
 # Env
 .env
+.DS_Store
+
+# Archive
+v1/
+v2/
+outputs/
