@@ -14,6 +14,7 @@ data/
 # Env
 .env
 .DS_Store
+.vscode
 
 # Archive
 v1/
