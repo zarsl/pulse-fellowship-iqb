@@ -18,7 +18,7 @@ All analysis uses M-Lab NDT speed-test data, aggregated by M-Lab to monthly perc
 | [3-use-cases](3-use-cases.ipynb) | Do context-specific use-case profiles give more meaningful scores? | RQ 3 |
 | [4a-urban-rural](4a-urban-rural.ipynb) | Are city-level scores more stable than national ones? | RQ 4a |
 | [4b-correlations](4b-correlations.ipynb) | Do IQB scores track GDP, broadband penetration and market concentration? | RQ 4b |
-| [5-map](5-map.ipynb) | Interactive country map of IQB scores with their confidence | — |
+| [5-map](5-map.ipynb) | Interactive country map of IQB scores with their confidence (https://zarsl.github.io/pulse-fellowship-iqb/map/) | — |
 
 
 ## Key idea: pass rates
