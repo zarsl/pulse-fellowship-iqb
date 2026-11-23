@@ -1,8 +1,0 @@
-{
-    "chat.tools.terminal.autoApprove": {
-        "/^python3 -c 'import json,pathlib; n=json\\.loads\\(pathlib\\.Path\\(\"08-policy_tipping_contextual_profiles\\.ipynb\"\\)\\.read_text\\(\\)\\); print\\(\\[\\(i\\+1,c\\.get\\(\"metadata\"\\),c\\.get\\(\"id\"\\)\\) for i,c in enumerate\\(n\\[\"cells\"\\]\\) if \"language\" not in c\\.get\\(\"metadata\",\\{\\}\\)\\]\\); print\\(\"metadata IDs\",\\[\\(i\\+1,c\\.get\\(\"metadata\",\\{\\}\\)\\.get\\(\"id\"\\),c\\.get\\(\"id\"\\)\\) for i,c in enumerate\\(n\\[\"cells\"\\]\\)\\]\\)'$/": {
-            "approve": true,
-            "matchCommandLine": true
-        }
-    }
-}
