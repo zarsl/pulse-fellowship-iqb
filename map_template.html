@@ -1,0 +1,769 @@
+<title>IQB Confidence Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #0e1621;
+  --ink-2: #475467;
+  --muted: #7b8798;
+  --line: #dfe4eb;
+  --chip: #eef2f6;
+  --nodata: #d5dbe3;
+  --focus: #1c5cab;
+  --b0: #d64532;
+  --b1: #ef8b3e;
+  --b2: #f2d04b;
+  --b3: #8cc265;
+  --b4: #1b6b38;
+  --hatch-a: rgba(255, 255, 255, 0.92);
+  --hatch-b: rgba(10, 20, 35, 0.5);
+  --shadow: 0 6px 24px rgba(14, 22, 33, 0.14);
+  --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f141a;
+    --surface: #161d25;
+    --ink: #eef2f7;
+    --ink-2: #b6c0cc;
+    --muted: #808b99;
+    --line: #2a3440;
+    --chip: #222b36;
+    --nodata: #313a46;
+    --focus: #6aa3ea;
+    --b0: #d9483a;
+    --b1: #e98a45;
+    --b2: #e2c650;
+    --b3: #86c063;
+    --b4: #4fbb72;
+    --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f141a;
+  --surface: #161d25;
+  --ink: #eef2f7;
+  --ink-2: #b6c0cc;
+  --muted: #808b99;
+  --line: #2a3440;
+  --chip: #222b36;
+  --nodata: #313a46;
+  --focus: #6aa3ea;
+  --b0: #d9483a;
+  --b1: #e98a45;
+  --b2: #e2c650;
+  --b3: #86c063;
+  --b4: #4fbb72;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 48px; display: grid; gap: 20px; }
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } }
+
+header { display: grid; gap: 8px; max-width: 70ch; }
+h1 { margin: 0; font-size: clamp(1.45rem, 1.05rem + 1.6vw, 2.05rem); line-height: 1.2; font-weight: 700; text-wrap: balance; }
+.lede { margin: 0; color: var(--ink-2); }
+h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+
+.controls { display: grid; gap: 10px; }
+.control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.control-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); min-width: 74px; }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--chip); border-radius: 999px; padding: 3px; gap: 2px; }
+.seg button { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink-2); background: transparent; border: 0; border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.seg.levels button { font-family: var(--mono); font-size: 13px; padding: 6px 12px; }
+.seg button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(14, 22, 33, 0.15); }
+.seg button:focus-visible, .tablewrap tr:focus-visible, input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.custom { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px 14px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+@media (max-width: 860px) { .custom { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .custom { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.custom .note-line { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--muted); }
+.cw { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 13px; min-width: 0; }
+.cw .cw-name { color: var(--ink-2); white-space: nowrap; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.stepper button { font: inherit; font-size: 12px; width: 28px; height: 28px; border: 0; background: var(--chip); color: var(--ink); cursor: pointer; }
+.stepper button:disabled { color: var(--muted); cursor: default; opacity: 0.5; }
+.stepper button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.stepper output { min-width: 38px; text-align: center; font-family: var(--mono); font-size: 13px; }
+.warn { margin: 0; font-size: 13px; color: var(--ink); }
+.counts { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.counts b { font-family: var(--mono); font-weight: 500; color: var(--ink); }
+
+.mapcard { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+#map { display: block; width: 100%; height: auto; }
+#shapes path, #dots circle { stroke: var(--surface); stroke-width: 0.35; cursor: pointer; transition: fill 0.25s; }
+#dots circle { stroke-width: 1; }
+#shapes .hl, #dots .hl { stroke: var(--ink); stroke-width: 1.1; }
+#shapes .sel, #dots .sel { stroke: var(--ink); stroke-width: 1.6; }
+#hatches path { fill: url(#hatch); pointer-events: none; stroke: none; }
+.h1 { stroke: var(--hatch-a); stroke-width: 1.4; }
+.h2 { stroke: var(--hatch-b); stroke-width: 0.9; }
+@media (prefers-reduced-motion: reduce) { #shapes path, #dots circle { transition: none; } }
+
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 10px 4px 2px; font-size: 13px; color: var(--ink-2); }
+.ramp { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ramp .bars, .ramp .ticks { display: grid; grid-template-columns: repeat(5, 50px); gap: 2px; }
+.ramp .bars span { height: 12px; border-radius: 2px; }
+.ramp .ticks { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: center; }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.key svg { width: 22px; height: 14px; border-radius: 2px; }
+
+.tip { position: absolute; z-index: 5; width: min(340px, calc(100% - 24px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 12px 14px; pointer-events: none; }
+
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.card-name { font-weight: 600; font-size: 15px; }
+.card-inc { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.card-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.card-value { font-family: var(--mono); font-size: 26px; font-weight: 500; line-height: 1.15; margin: 6px 0 2px; letter-spacing: -0.01em; }
+.card-value small { font-size: 14px; color: var(--muted); }
+.card-text { margin: 4px 0 0; font-size: 13px; color: var(--ink-2); }
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 10px; font-size: 12px; }
+.strip .sl { color: var(--muted); }
+.strip .pv { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+.strip .pv b { font-weight: 400; color: var(--ink-2); }
+.strip .pv.on, .strip .pv.on b { color: var(--ink); font-weight: 500; }
+.card-meta { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); display: grid; gap: 2px; }
+.card-meta b { font-family: var(--mono); font-weight: 500; color: var(--ink-2); }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--ink-2); background: var(--chip); border-radius: 999px; padding: 2px 9px 2px 7px; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.dot.score { background: var(--ink-2); }
+.dot.range { background: repeating-linear-gradient(45deg, var(--ink-2) 0 2px, var(--surface) 2px 4px); box-shadow: inset 0 0 0 1px var(--ink-2); }
+.dot.none { background: transparent; box-shadow: inset 0 0 0 1.5px var(--muted); }
+
+.detail { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-height: 64px; }
+.detail .empty { margin: 0; color: var(--muted); font-size: 14px; }
+.detail .card-value { font-size: 32px; }
+.detail .strip { max-width: 520px; }
+
+.regions { display: grid; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.reg-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.reg-head h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.reg-sub { font-size: 13px; color: var(--muted); }
+.reg-body { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.reg-body.nomap { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 760px) { .reg-body { grid-template-columns: minmax(0, 1fr); } }
+.reg-map svg { display: block; width: 100%; height: auto; max-height: 460px; }
+.reg-map .rf { stroke: none; cursor: pointer; }
+.reg-map .rf.hl { filter: brightness(1.2); }
+.reg-map .rh { fill: url(#hatch); pointer-events: none; }
+.reg-map .rb { fill: none; stroke: var(--surface); stroke-width: 0.8; pointer-events: none; }
+.list-axis, .rrow { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(96px, 1fr) 84px; gap: 10px; align-items: center; }
+.list-axis { padding: 0 6px 4px; font-size: 11px; color: var(--muted); }
+.list-axis .ax { display: flex; justify-content: space-between; font-family: var(--mono); }
+.reg-list { display: grid; gap: 1px; max-height: 470px; overflow-y: auto; }
+.rrow { padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.rrow:hover, .rrow.hl { background: var(--chip); }
+.rrow.na { color: var(--muted); }
+.rrow .rn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rrow .rv { font-family: var(--mono); font-size: 12px; text-align: right; white-space: nowrap; }
+.track { position: relative; height: 14px; }
+.track::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 2px; border-radius: 1px; background: var(--line); }
+.track .nat { position: absolute; top: -1px; bottom: -1px; border-left: 1.5px solid var(--muted); }
+.track .bar { position: absolute; top: 3px; height: 8px; border-radius: 4px; background: repeating-linear-gradient(45deg, var(--b2) 0 2px, var(--surface) 2px 4px); box-shadow: inset 0 0 0 1px var(--b2); }
+.track .pt { position: absolute; top: 2px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: var(--b3); box-shadow: 0 0 0 2px var(--surface); }
+.reg-notes { margin: 0; font-size: 12px; color: var(--muted); display: grid; gap: 4px; max-width: 90ch; }
+.reg-key { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--ink-2); }
+.reg-key span { display: inline-flex; align-items: center; gap: 6px; }
+.reg-key .k-pt { width: 10px; height: 10px; border-radius: 50%; background: var(--ink-2); }
+.reg-key .k-bar { width: 22px; height: 8px; border-radius: 4px; background: repeating-linear-gradient(45deg, var(--ink-2) 0 2px, var(--surface) 2px 4px); box-shadow: inset 0 0 0 1px var(--ink-2); }
+.reg-key .k-nat { width: 0; height: 12px; border-left: 1.5px solid var(--muted); }
+.card-hint { color: var(--ink-2); }
+
+.tablecard { display: grid; gap: 12px; }
+.tablehead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+#q { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; width: min(280px, 100%); }
+.tablewrap { overflow: auto; max-height: 520px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+thead th { position: sticky; top: 0; background: var(--surface); text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tbody tr { cursor: pointer; }
+tbody tr:hover, tbody tr.sel { background: var(--chip); }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.basis { color: var(--ink-2); white-space: nowrap; }
+.note { margin: 0; font-size: 12px; color: var(--muted); }
+
+.notes { display: grid; gap: 10px; max-width: 75ch; }
+.notes dl { margin: 0; display: grid; gap: 10px; }
+.notes dt { font-weight: 600; font-size: 14px; }
+.notes dd { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
+.notes dd p { margin: 0 0 6px; }
+.notes dd ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.notes a { color: var(--ink); text-decoration: underline; text-underline-offset: 2px; }
+footer { font-size: 12px; color: var(--muted); max-width: 75ch; }
+</style>
+
+<main class="wrap">
+  <header>
+    <h1>IQB by percentile</h1>
+  </header>
+
+  <div class="controls">
+    <div class="control-row">
+      <span class="control-label" id="lbl-profile">Profile</span>
+      <div class="seg" role="radiogroup" aria-labelledby="lbl-profile" id="profiles"></div>
+    </div>
+    <div class="custom" id="custom" hidden></div>
+    <div class="control-row">
+      <span class="control-label" id="lbl-level">Percentile</span>
+      <div class="seg levels" role="radiogroup" aria-labelledby="lbl-level" id="levels">
+        <button type="button" id="lv-25" role="radio" aria-checked="false" data-l="25">P25</button>
+        <button type="button" id="lv-50" role="radio" aria-checked="true" data-l="50">P50</button>
+        <button type="button" id="lv-75" role="radio" aria-checked="false" data-l="75">P75</button>
+        <button type="button" id="lv-95" role="radio" aria-checked="false" data-l="95">P95</button>
+      </div>
+    </div>
+    <div class="control-row">
+      <span class="control-label" id="lbl-period">Period</span>
+      <div class="seg" role="radiogroup" aria-labelledby="lbl-period" id="periods">
+        <button type="button" id="p-a" role="radio" aria-checked="true" data-p="a">Full year 2025</button>
+        <button type="button" id="p-d" role="radio" aria-checked="false" data-p="d">December 2025</button>
+      </div>
+      <p class="counts" id="counts"></p>
+    </div>
+  </div>
+
+  <section class="mapcard" id="mapcard">
+    <svg id="map" viewBox="0 0 1000 __VBH__" role="img" aria-label="World map of IQB scores at the selected percentile. The table below lists every country.">
+      <defs>
+        <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line class="h1" x1="1" y1="0" x2="1" y2="5"/>
+          <line class="h2" x1="3.2" y1="0" x2="3.2" y2="5"/>
+        </pattern>
+      </defs>
+      <g id="shapes">
+<!--__PATHS__-->
+      </g>
+      <g id="hatches"></g>
+      <g id="dots">
+<!--__DOTS__-->
+      </g>
+    </svg>
+    <div class="legend" aria-hidden="true">
+      <div class="ramp">
+        <span id="legend-title">IQB at P50</span>
+        <div>
+          <div class="bars"><span style="background:var(--b0)"></span><span style="background:var(--b1)"></span><span style="background:var(--b2)"></span><span style="background:var(--b3)"></span><span style="background:var(--b4)"></span></div>
+          <div class="ticks"><span>0–0.2</span><span>0.2–0.4</span><span>0.4–0.6</span><span>0.6–0.8</span><span>0.8–1</span></div>
+        </div>
+      </div>
+      <span class="key"><svg viewBox="0 0 22 14"><rect width="22" height="14" fill="var(--b2)"/><rect width="22" height="14" fill="url(#hatch)"/></svg>shown as a range</span>
+      <span class="key"><svg viewBox="0 0 22 14"><rect width="22" height="14" fill="var(--nodata)"/></svg>no score (too few tests)</span>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+  </section>
+
+  <section class="detail" id="detail">
+    <div id="detail-card" aria-live="polite"><p class="empty">Click a country on the map, or a row in the table, to see its details and its regions here.</p></div>
+    <div class="regions" id="regions" hidden></div>
+  </section>
+
+  <section class="tablecard">
+    <div class="tablehead">
+      <h2 id="table-title">All countries</h2>
+      <input id="q" type="search" placeholder="Search a country" aria-label="Search a country" autocomplete="off">
+    </div>
+    <div class="tablewrap">
+      <table aria-labelledby="table-title">
+        <thead><tr><th>Country</th><th>Income group</th><th>Published as</th><th id="th-level">IQB at P50</th><th>Confidence</th><th>Tests</th><th>Based on</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="note" id="offmap"></p>
+  </section>
+
+  <section class="notes">
+    <h2>How to read the map</h2>
+    <dl>
+      <dt>Percentile</dt>
+      <dd>IQB checks each requirement against the test at the chosen percentile of the country's tests, ranked from worst to best.</dd>
+      <dt>Profile</dt>
+      <dd>How the six use cases are weighted in the score. <b>Default</b> weights them equally; <b>No gaming</b> drops gaming; <b>Essential services</b> drops online backup and gaming; <b>Basic access</b> keeps only web browsing and video conferencing; <b>IQB Edu</b> gives full weight to web browsing, video streaming and video conferencing, half weight to audio streaming and online backup, and none to gaming; <b>Custom</b> sets each weight between 0 and 1. Scores, confidence and ranges are recomputed for the chosen weights. Scores under different profiles are not comparable with each other.</dd>
+      <dt>Confidence</dt>
+      <dd>The probability that the true score is within ±0.05 of the one shown, given the number of tests. Tests are clustered (the same users and networks), so <span id="m-deff"></span> tests are counted as worth one independent test.</dd>
+      <dt>Range</dt>
+      <dd>When confidence is below 95&nbsp;%, the 95&nbsp;% interval of plausible true scores is shown.</dd>
+      <dt>Regions</dt>
+      <dd>Clicking a country opens its first-level regions (states, provinces), scored with the same rules from the full year 2025. M-Lab works out where each test came from using the tester’s IP address. Sometimes that lookup only gives the country, not the region. Those tests count towards the country’s national score but not towards any regional score; the share of tests that could be placed in a region is shown under each country’s regions. IP-based location is approximate. Mobile operators often route traffic through a few central points, usually in the capital or largest city, so tests can be placed there even when the user is elsewhere.</dd>
+      <dt>Minimum number of tests</dt>
+      <dd>
+        <p>An IQB score is built from pass/fail checks. For each requirement, such as “download faster than 25 Mbit/s”, the score asks what share of tests passes. That share is the pass rate. At P50 the requirement counts as met if more than 50&nbsp;% of tests pass. Every pass rate must be known to within ±5 percentage points, with 95&nbsp;% confidence. Two steps give the number of tests this takes:</p>
+        <ol>
+          <li><b>Independent tests needed: 384.</b> The standard formula for estimating a share is n = 1.96² × p(1−p) / 0.05². The hardest case is a pass rate of 50&nbsp;% (p = 0.5), which gives 384.</li>
+          <li><b>Times 3 for clustering: 1,153.</b> Tests aren’t independent: the same people and networks run many of them, so a thousand tests carry less information than a thousand independent tests would. Without access to the individual tests, the size of this effect was estimated from how each country’s monthly pass rates move. A monthly pass rate is treated as a true level that changes slowly, plus noise from which tests happened to be run that month. A real change carries over into the next month; noise does not, so it shows up as a jump followed by a jump back. The size of those back-and-forth jumps measures the noise, which is then compared with the noise that the same number of independent tests would produce. Across 1,128 monthly series from countries with fewer than 10,000 tests a month (in larger countries this noise is too small to see), the noise is a median of 2.7 times that amount. Rounded to 3, three real tests count as about one independent one: 384 × 3 = 1,152.4, rounded up to 1,153.</li>
+        </ol>
+      </dd>
+      <dt>No score</dt>
+      <dd>Fewer than <span id="m-min"></span> upload tests or fewer than <span class="m-min"></span> download tests, whatever the percentile. For December 2025, the most recent months are pooled until that minimum is reached, up to 12 months; the window is shown with the score.</dd>
+      <dt>Income group</dt>
+      <dd>World Bank country classification by income level for fiscal year 2027, based on 2025 GNI per capita (Atlas method): low income $1,175 or less, lower-middle $1,176–4,635, upper-middle $4,636–14,375, high income above $14,375. Source: World Bank, <a href="https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups" target="_blank" rel="noopener">World Bank Country and Lending Groups</a> (July 2026), retrieved through the World Bank API on 29 October 2026.</dd>
+    </dl>
+  </section>
+
+  <footer>Data: M-Lab NDT percentile tables via the open-source IQB library, January–December 2025; scores use the library's default configuration. Confidence, ranges and pooling windows: Pulse project, notebooks 1a-sample-size and 5-map (posterior over pass rates, design effect estimated from monthly data).</footer>
+</main>
+
+<script>
+const DATA = /*__DATA__*/;
+const META = /*__META__*/;
+const LEVELS = ["25", "50", "75", "95"];
+const STATUS = { score: "Score", range: "Range", pool: "Pool more data", none: "No score" };
+const BINS = [0.2, 0.4, 0.6, 0.8];
+let period = "a";
+let level = "50";
+let selected = null;
+let profile = "default";
+let customW = Object.fromEntries(META.useCases.map((u) => [u, 1]));
+let WK = null; // weight of each test in the score under the current profile
+
+const PROFILE_KEYS = [...Object.keys(META.profiles), "custom"];
+const profileLabel = () => `${profile === "custom" ? "Custom" : META.profiles[profile].label} Profile`;
+const profileWeights = () => (profile === "custom" ? customW : META.profiles[profile].w);
+
+/* Each test's weight in the score: use-case weight share × requirement weight share. */
+function testWeights(wu) {
+  const total = META.useCases.reduce((a, u) => a + (wu[u] || 0), 0);
+  if (total <= 0) return null;
+  const wk = new Array(META.tests.length).fill(0);
+  for (const u of META.useCases) {
+    if (!wu[u]) continue;
+    const reqs = META.config.filter((r) => r[0] === u);
+    const rsum = reqs.reduce((a, r) => a + r[2], 0);
+    for (const [, k, rw] of reqs) wk[k] += (wu[u] / total) * (rw / rsum);
+  }
+  return wk;
+}
+const scoreOf = (mask) => { let v = 0; for (let k = 0; k < WK.length; k++) if (mask & (1 << k)) v += WK[k]; return v; };
+/* numpy's default (linear) percentile of the simulated sample, from (score, count) pairs */
+function quantile(pts, p) {
+  const pos = p * (META.B - 1), i = Math.floor(pos), frac = pos - i;
+  const at = (j) => { let cum = 0; for (const [x, c] of pts) { cum += c; if (j < cum) return x; } return pts[pts.length - 1][0]; };
+  const a = at(i), b = at(Math.min(i + 1, META.B - 1));
+  return a + (b - a) * frac;
+}
+
+const $ = (s) => document.querySelector(s);
+const fmtN = (n) => Number(n).toLocaleString("en-US");
+const fmtV = (v) => v.toFixed(2);
+const fmtConf = (c) => (c >= 0.995 ? "over 99 %" : `${Math.round(c * 100)} %`);
+const bin = (v) => { let i = 0; while (i < BINS.length && v >= BINS[i]) i++; return i; };
+const unit = (cc) => (DATA[cc] ? DATA[cc][period] : null);
+function atLevel(u, l) {
+  if (!u || !u.L || !u.L[l] || !WK) return null;
+  const [obs, dist] = u.L[l];
+  const v = scoreOf(obs);
+  const pts = dist.map(([m, c]) => [scoreOf(m), c]).sort((a, b) => a[0] - b[0]);
+  let within = 0;
+  for (const [x, c] of pts) if (Math.abs(x - v) <= META.tol + 1e-9) within += c;
+  const c = within / META.B;
+  const r = { v, c, lo: quantile(pts, 0.025), hi: quantile(pts, 0.975), s: c >= META.conf ? "score" : "range" };
+  if (r.s === "range") {           // the counted test whose pass rate sits closest to the cut-off
+    const cut = 1 - Number(l) / 100;
+    let best = -1;
+    for (let k = 0; k < WK.length; k++) if (WK[k] > 1e-12 && (best < 0 || Math.abs(u.pr[k] - cut) < Math.abs(u.pr[best] - cut))) best = k;
+    if (best >= 0) { r.why = META.tests[best]; r.pr = u.pr[best]; }
+  }
+  return r;
+}
+const statusOf = (u, l) => { const r = atLevel(u, l); return r ? r.s : (u.s === "ok" ? "none" : u.s); };
+const dotClass = (s) => (s === "score" ? "score" : s === "range" ? "range" : "none");
+
+function fillFor(cc) {
+  const r = atLevel(unit(cc), level);
+  if (!r || (r.s !== "score" && r.s !== "range")) return "var(--nodata)";
+  const v = r.s === "range" ? (r.lo + r.hi) / 2 : r.v;
+  return `var(--b${bin(v)})`;
+}
+
+function threshold(test) {
+  const m = /^(download|upload|latency|loss)([<>])([\d.]+)$/.exec(test || "");
+  if (!m) return null;
+  const v = parseFloat(m[3]);
+  return {
+    download: `download faster than ${v} Mbit/s`,
+    upload: `upload faster than ${v} Mbit/s`,
+    latency: `latency below ${v} ms`,
+    loss: `packet loss below ${+(v * 100).toFixed(2)} %`,
+  }[m[1]];
+}
+
+const shortValue = (r) => (!r || (r.s !== "score" && r.s !== "range") ? "—" : r.s === "score" ? fmtV(r.v) : `${fmtV(r.lo)}–${fmtV(r.hi)}`);
+
+function strip(u) {
+  return `<div class="strip"><span class="sl">At each percentile</span>${LEVELS.map((l) => {
+    const r = atLevel(u, l);
+    const s = statusOf(u, l);
+    return `<span class="pv${l === level ? " on" : ""}"><span class="dot ${dotClass(s)}"></span>P${l} <b>${shortValue(r)}</b></span>`;
+  }).join("")}</div>`;
+}
+
+/* "Only 197 upload tests and 248 download tests in 2025" */
+const fewTests = (u, when) => (u.td != null
+  ? `Only ${fmtN(u.tu)} upload tests and ${fmtN(u.td)} download tests ${when}`
+  : `Only ${fmtN(u.t)} tests ${when}`);
+const needTests = () => `${fmtN(META.minTests)} tests are needed in each category to reach a score.`;
+/* December without a score: December's own tests, then the 12 months to December (the longest window pooled) */
+const nTests = (n, kind) => `${fmtN(n)} ${kind} test${n === 1 ? "" : "s"}`;
+const decTests = (u) => {
+  const year = `${fmtN(u.tu)} and ${fmtN(u.td)} over the 12 months to December`;
+  if (u.mu == null) return `Only ${nTests(u.tu, "upload")} and ${nTests(u.td, "download")} over the 12 months to December`;
+  if (!u.mu && !u.md) return `No tests in December 2025, and only ${nTests(u.tu, "upload")} and ${nTests(u.td, "download")} over the 12 months to December`;
+  return `Only ${nTests(u.mu, "upload")} and ${nTests(u.md, "download")} in December 2025, and ${year}`;
+};
+
+function describe(x, s, u, kind) {
+  if (!WK) return { value: "—", text: "Every use case has weight 0 in the custom profile, so there is no score. Set at least one weight above 0." };
+  if (s === "score") return { value: `${fmtV(x.v)} <small>±0.05</small>`, text: `Within ±0.05 of the true score with ${fmtConf(x.c)} confidence.` };
+  if (s === "range") {
+    let text = `Too close to a threshold to show as one number: only ${fmtConf(x.c)} confidence that the point estimate (${fmtV(x.v)}) is within ±0.05. The range is the 95 % interval of plausible true scores.`;
+    if (x.why && x.pr != null) text += ` <br>Why: ${(x.pr * 100).toFixed(1)} % of tests have ${threshold(x.why)}.`;
+    return { value: `${fmtV(x.lo)} – ${fmtV(x.hi)}`, text };
+  }
+  if (kind === "region") return { value: "—", text: s === "pool"
+    ? `${fewTests(u, "in 2025")}. ${needTests()}`
+    : `${fewTests(u, "in 2025")}, too few for any score.` };
+  if (kind === "annual" && s === "pool") return { value: "—", text: `${fewTests(u, "in 2025")}. ${needTests()} Pool more months before publishing a score.` };
+  if (kind === "annual") return { value: "—", text: `${fewTests(u, "in 2025")}, too few for any score.` };
+  if (u.td != null) return { value: "—", text: `${decTests(u)}. ${needTests()}` };
+  return { value: "—", text: `Not enough tests even over the last 12 months. ${needTests()}` };
+}
+
+function card(cc, hint) {
+  const c = DATA[cc];
+  const u = c[period];
+  const r = atLevel(u, level);
+  const s = statusOf(u, level);
+  const { value, text } = describe(r, s, u, period === "a" ? "annual" : "month");
+  const meta = [];
+  if (period === "a") meta.push(`Based on <b>${fmtN(u.t)}</b> tests, January–December 2025`);
+  else if (u.t) meta.push(`Based on <b>${fmtN(u.t)}</b> tests, ${u.w}`);
+  if (period === "d" && u.plan) meta.push(`Typical pooling in 2025: ${u.plan}`);
+  if (hint && c.rg) meta.push(`<span class="card-hint">Click to open its ${c.rg.k} regions</span>`);
+  return `<div class="card-head"><span class="card-name">${c.n}</span><span class="card-inc">${c.i ? c.i + " income" : ""}</span></div>
+    <div class="card-sub"><span class="chip"><span class="dot ${dotClass(s)}"></span>${STATUS[s]}</span><span>IQB at P${level} · ${profileLabel()}</span></div>
+    <div class="card-value">${value}</div><p class="card-text">${text}</p>${strip(u)}` +
+    (meta.length ? `<div class="card-meta">${meta.map((m) => `<span>${m}</span>`).join("")}</div>` : "");
+}
+
+function regionCard(cc, r) {
+  const x = atLevel(r, level);
+  const s = statusOf(r, level);
+  const { value, text } = describe(x, s, r, "region");
+  return `<div class="card-head"><span class="card-name">${r.n}</span><span class="card-inc">${DATA[cc].n}</span></div>
+    <div class="card-sub"><span class="chip"><span class="dot ${dotClass(s)}"></span>${STATUS[s]}</span><span>IQB at P${level} · ${profileLabel()} · 2025</span></div>
+    <div class="card-value">${value}</div><p class="card-text">${text}</p>${strip(r)}
+    <div class="card-meta"><span>Based on <b>${fmtN(r.t)}</b> tests in 2025${r.sh != null ? `, ${(r.sh * 100).toFixed(r.sh < 0.01 ? 1 : 0)} % of the country's tests` : ""}</span></div>`;
+}
+
+/* ---------- map painting ---------- */
+const mapEls = [...document.querySelectorAll("#shapes [data-id], #dots [data-id]")];
+function paint() {
+  const hatches = $("#hatches");
+  hatches.textContent = "";
+  for (const el of mapEls) {
+    const cc = el.dataset.id;
+    el.style.fill = fillFor(cc);
+    const r = atLevel(unit(cc), level);
+    if (r && r.s === "range" && el.tagName === "path") {
+      const h = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      h.setAttribute("d", el.getAttribute("d"));
+      hatches.appendChild(h);
+    }
+  }
+  const counts = { score: 0, range: 0, none: 0 };
+  for (const cc in DATA) {
+    const s = statusOf(DATA[cc][period], level);
+    counts[s === "score" ? "score" : s === "range" ? "range" : "none"]++;
+  }
+  $("#counts").innerHTML = WK
+    ? `<span><b>${counts.score}</b> shown as a score</span><span><b>${counts.range}</b> as a range</span><span><b>${counts.none}</b> without a score</span>`
+    : `<span class="warn">Set at least one use-case weight above 0.</span>`;
+  $("#legend-title").textContent = `IQB at P${level}`;
+  $("#th-level").textContent = `IQB at P${level}`;
+  renderTable();
+  if (selected) showDetail(selected);
+}
+
+/* ---------- hover tooltip ---------- */
+const tip = $("#tip");
+const mapcard = $("#mapcard");
+let hovered = null;
+function placeTip(ev) {
+  const box = mapcard.getBoundingClientRect();
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+  if (x + w > box.width - 8) x = ev.clientX - box.left - w - 14;
+  if (y + h > box.height - 8) y = ev.clientY - box.top - h - 14;
+  tip.style.left = `${Math.max(8, x)}px`;
+  tip.style.top = `${Math.max(8, y)}px`;
+}
+function clearHover() {
+  if (hovered) document.querySelectorAll(`[data-id="${hovered}"]`).forEach((e) => e.classList.remove("hl"));
+  hovered = null;
+  tip.hidden = true;
+}
+const svg = $("#map");
+svg.addEventListener("pointermove", (ev) => {
+  if (ev.pointerType === "touch") return;
+  const el = ev.target.closest("[data-id]");
+  const cc = el && DATA[el.dataset.id] ? el.dataset.id : null;
+  if (cc !== hovered) {
+    clearHover();
+    if (cc) {
+      hovered = cc;
+      document.querySelectorAll(`#map [data-id="${cc}"]`).forEach((e) => { e.classList.add("hl"); e.parentNode.appendChild(e); });
+      tip.innerHTML = card(cc, true);
+      tip.hidden = false;
+    }
+  }
+  if (cc) placeTip(ev);
+});
+svg.addEventListener("pointerleave", clearHover);
+svg.addEventListener("click", (ev) => {
+  const el = ev.target.closest("[data-id]");
+  if (el && DATA[el.dataset.id]) select(el.dataset.id, false);
+});
+
+/* ---------- selection & detail ---------- */
+function showDetail(cc) {
+  $("#detail-card").innerHTML = card(cc, false);
+  if (regionCache.has(cc)) renderRegions(cc);
+}
+
+/* ---------- regions ---------- */
+const regionCache = new Map();
+const regVal = (x) => (!x || (x.s !== "score" && x.s !== "range") ? null : x.s === "score" ? x.v : (x.lo + x.hi) / 2);
+
+async function loadRegions(cc) {
+  const box = $("#regions");
+  box.hidden = false;
+  const rg = DATA[cc].rg;
+  if (!rg) {
+    box.innerHTML = `<p class="reg-notes">M-Lab's data has no regional breakdown for ${DATA[cc].n}.</p>`;
+    return;
+  }
+  if (!regionCache.has(cc)) {
+    box.innerHTML = `<p class="reg-notes">Loading the ${rg.k} regions of ${DATA[cc].n}…</p>`;
+    try {
+      const res = await fetch(`regions/${cc}.json`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      regionCache.set(cc, await res.json());
+    } catch (e) {
+      if (selected === cc) box.innerHTML = `<p class="reg-notes">The regions of ${DATA[cc].n} could not be loaded (${e.message}). Reload the page to try again.</p>`;
+      return;
+    }
+  }
+  if (selected === cc) renderRegions(cc);
+}
+
+function renderRegions(cc) {
+  const R = regionCache.get(cc);
+  const box = $("#regions");
+  if (!R || selected !== cc) return;
+  const country = DATA[cc];
+  const natV = regVal(atLevel(country.a, level));
+  const byCode = Object.fromEntries(R.regions.map((r) => [r.c, r]));
+  const rows = [...R.regions].sort((a, b) => (regVal(atLevel(b, level)) ?? -1) - (regVal(atLevel(a, level)) ?? -1) || b.t - a.t);
+  const shown = rows.filter((r) => regVal(atLevel(r, level)) != null).length;
+  let mapHtml = "";
+  if (R.geo) {
+    const shapes = R.geo.f.map(([code, d]) => {
+      const r = byCode[code];
+      const x = r ? atLevel(r, level) : null;
+      const v = regVal(x);
+      const fill = v == null ? "var(--nodata)" : `var(--b${bin(v)})`;
+      return `<path class="rf" data-r="${code}" d="${d}" style="fill:${fill}"/>` + (x && x.s === "range" ? `<path class="rh" d="${d}"/>` : "");
+    }).join("");
+    mapHtml = `<div class="reg-map"><svg viewBox="0 0 ${R.geo.w} ${R.geo.h}" role="img" aria-label="Map of the regions of ${country.n}. The list beside it gives every region.">${shapes}<path class="rb" d="${R.geo.b}"/></svg></div>`;
+  }
+  const list = rows.map((r) => {
+    const x = atLevel(r, level);
+    let mark = "";
+    if (x && x.s === "score") mark = `<span class="pt" style="left:${x.v * 100}%;background:var(--b${bin(x.v)})"></span>`;
+    else if (x && x.s === "range") {
+      const col = `var(--b${bin((x.lo + x.hi) / 2)})`;
+      mark = `<span class="bar" style="left:${x.lo * 100}%;width:${Math.max((x.hi - x.lo) * 100, 2)}%;background:repeating-linear-gradient(45deg, ${col} 0 2px, var(--surface) 2px 4px);box-shadow:inset 0 0 0 1px ${col}"></span>`;
+    }
+    const nat = natV != null ? `<span class="nat" style="left:${natV * 100}%"></span>` : "";
+    return `<div class="rrow${regVal(x) == null ? " na" : ""}" data-r="${r.c}" tabindex="0"><span class="rn">${r.n}</span><span class="track">${nat}${mark}</span><span class="rv">${shortValue(x)}</span></div>`;
+  }).join("");
+  const notes = [];
+  if (R.located != null) {
+    const pct = Math.round(R.located * 100);
+    notes.push(R.located >= 1 ? `All of ${country.n}'s 2025 tests could be placed in one of its regions.`
+      : pct >= 100 ? `More than 99 % of ${country.n}'s 2025 tests could be placed in one of its regions; the rest are known only to be in ${country.n}.`
+      : `${pct} % of ${country.n}'s 2025 tests could be placed in one of its regions; the other ${100 - pct} % are known only to be in ${country.n}.`);
+  }
+  if (!R.geo) notes.push("No region boundaries match the regions M-Lab reports for this country, so its regions are listed without a map.");
+  else if (R.notDrawn.length) notes.push(`Not on the map (no matching boundary): ${R.notDrawn.join(", ")}.`);
+  notes.push("IP-based location is approximate. Mobile operators often route traffic through a few central points, usually in the capital or largest city, so tests can be placed there even when the user is elsewhere.");
+  box.innerHTML = `<div class="reg-head"><h3>Regions of ${country.n}</h3><span class="reg-sub">IQB at P${level} · ${profileLabel()} · full year 2025 · ${shown} of ${R.regions.length} regions with a score or range</span></div>
+    ${period === "d" ? `<p class="reg-notes">Regions always use the full year 2025: a single month has too few tests in most regions.</p>` : ""}
+    <div class="reg-key"><span><span class="k-pt"></span>score (±0.05)</span><span><span class="k-bar"></span>range</span>${natV != null ? `<span><span class="k-nat"></span>${country.n} at P${level}</span>` : ""}<span>grey: too few tests</span></div>
+    <div class="reg-body${R.geo ? "" : " nomap"}" id="reg-body">${mapHtml}
+      <div><div class="list-axis"><span>Region</span><span class="ax"><span>0</span><span>0.5</span><span>1</span></span><span style="text-align:right">IQB</span></div><div class="reg-list">${list}</div></div>
+      <div class="tip" id="rtip" hidden></div>
+    </div>
+    <div class="reg-notes">${notes.map((n) => `<span>${n}</span>`).join("")}</div>`;
+  wireRegions(cc);
+}
+
+function wireRegions(cc) {
+  const body = $("#reg-body");
+  const rtip = $("#rtip");
+  const byCode = Object.fromEntries(regionCache.get(cc).regions.map((r) => [r.c, r]));
+  let current = null;
+  const mark = (code, on) => body.querySelectorAll(`[data-r="${CSS.escape(code)}"]`).forEach((e) => e.classList.toggle("hl", on));
+  const show = (code, ev) => {
+    if (code !== current) {
+      if (current) mark(current, false);
+      current = code;
+      if (code) { mark(code, true); rtip.innerHTML = regionCard(cc, byCode[code]); rtip.hidden = false; }
+      else rtip.hidden = true;
+    }
+    if (code && ev) {
+      const box = body.getBoundingClientRect();
+      const w = rtip.offsetWidth, h = rtip.offsetHeight;
+      let x = ev.clientX - box.left + 14, y = ev.clientY - box.top + 14;
+      if (x + w > box.width - 4) x = ev.clientX - box.left - w - 14;
+      if (y + h > box.height - 4) y = Math.max(4, ev.clientY - box.top - h - 14);
+      rtip.style.left = `${Math.max(4, x)}px`;
+      rtip.style.top = `${Math.max(4, y)}px`;
+    }
+  };
+  const codeAt = (t) => { const el = t.closest("[data-r]"); return el && byCode[el.dataset.r] ? el.dataset.r : null; };
+  body.addEventListener("pointermove", (ev) => { if (ev.pointerType !== "touch") show(codeAt(ev.target), ev); });
+  body.addEventListener("pointerleave", () => show(null));
+  body.addEventListener("click", (ev) => show(codeAt(ev.target), ev));
+  body.addEventListener("keydown", (ev) => {
+    const code = codeAt(ev.target);
+    if (code && (ev.key === "Enter" || ev.key === " ")) {
+      ev.preventDefault();
+      const r = ev.target.getBoundingClientRect();
+      show(code, { clientX: r.left + 40, clientY: r.bottom });
+    }
+  });
+}
+function select(cc, fromTable) {
+  if (selected) document.querySelectorAll(`#map [data-id="${selected}"]`).forEach((e) => e.classList.remove("sel"));
+  selected = cc;
+  document.querySelectorAll(`#map [data-id="${cc}"]`).forEach((e) => { e.classList.add("sel"); e.parentNode.appendChild(e); });
+  showDetail(cc);
+  loadRegions(cc);
+  document.querySelectorAll("#rows tr").forEach((tr) => tr.classList.toggle("sel", tr.dataset.id === cc));
+  $(fromTable ? "#mapcard" : "#detail").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+/* ---------- table ---------- */
+const order = Object.keys(DATA).sort((a, b) => DATA[a].n.localeCompare(DATA[b].n));
+function renderTable() {
+  const q = $("#q").value.trim().toLowerCase();
+  const rows = [];
+  for (const cc of order) {
+    const c = DATA[cc];
+    if (q && !c.n.toLowerCase().includes(q)) continue;
+    const u = c[period];
+    const r = atLevel(u, level);
+    const s = statusOf(u, level);
+    const conf = r && (s === "score" || s === "range") ? fmtConf(r.c) : "—";
+    const tests = u.t != null ? fmtN(u.t) : "—";
+    const basis = period === "a" ? "2025" : u.w || "—";
+    rows.push(`<tr tabindex="0" data-id="${cc}" class="${cc === selected ? "sel" : ""}"><td>${c.n}</td><td>${c.i || "—"}</td>` +
+      `<td><span class="chip"><span class="dot ${dotClass(s)}"></span>${STATUS[s]}</span></td>` +
+      `<td class="num">${shortValue(r)}</td><td class="num">${conf}</td>` +
+      `<td class="num">${tests}</td><td class="basis">${basis}</td></tr>`);
+  }
+  $("#rows").innerHTML = rows.join("") || `<tr><td colspan="7">No country matches “${q}”.</td></tr>`;
+}
+$("#rows").addEventListener("click", (ev) => {
+  const tr = ev.target.closest("tr[data-id]");
+  if (tr) select(tr.dataset.id, true);
+});
+$("#rows").addEventListener("keydown", (ev) => {
+  const tr = ev.target.closest("tr[data-id]");
+  if (tr && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); select(tr.dataset.id, true); }
+});
+$("#q").addEventListener("input", renderTable);
+
+/* ---------- controls ---------- */
+function setChecked(groupSel, attr, value) {
+  document.querySelectorAll(`${groupSel} button`).forEach((x) => x.setAttribute("aria-checked", String(x.dataset[attr] === value)));
+}
+function remember() {
+  try { localStorage.setItem("iqb-map", JSON.stringify({ period, level, profile, customW })); } catch (e) { /* storage unavailable */ }
+}
+const UC_LABEL = (u) => u.charAt(0).toUpperCase() + u.slice(1);
+function renderProfiles() {
+  $("#profiles").innerHTML = PROFILE_KEYS.map((k) =>
+    `<button type="button" id="pf-${k}" role="radio" aria-checked="${k === profile}" data-k="${k}">${k === "custom" ? "Custom" : META.profiles[k].label}</button>`).join("");
+  const box = $("#custom");
+  box.hidden = profile !== "custom";
+  if (profile === "custom") {
+    box.innerHTML = META.useCases.map((u, i) => `<div class="cw"><span class="cw-name" id="cwl-${i}">${UC_LABEL(u)}</span>
+      <span class="stepper" role="group" aria-labelledby="cwl-${i}">
+        <button type="button" id="cw-dn-${i}" data-u="${u}" data-d="-1" aria-label="Decrease ${u} weight" ${customW[u] <= 0 ? "disabled" : ""}>▼</button>
+        <output id="cw-v-${i}" aria-live="polite">${customW[u].toFixed(1)}</output>
+        <button type="button" id="cw-up-${i}" data-u="${u}" data-d="1" aria-label="Increase ${u} weight" ${customW[u] >= 1 ? "disabled" : ""}>▲</button>
+      </span></div>`).join("") + `<p class="note-line">Weights from 0 to 1 in steps of 0.1.</p>`;
+  }
+}
+function applyProfile() {
+  WK = testWeights(profileWeights());
+  renderProfiles();
+  remember();
+  clearHover();
+  paint();
+}
+$("#profiles").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-k]");
+  if (!b) return;
+  profile = b.dataset.k;
+  applyProfile();
+  $(`#pf-${profile}`).focus();
+});
+$("#custom").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-u]");
+  if (!b) return;
+  const u = b.dataset.u;
+  customW[u] = Math.min(1, Math.max(0, Math.round((customW[u] + 0.1 * Number(b.dataset.d)) * 10) / 10));
+  const id = b.id;
+  applyProfile();
+  const again = document.getElementById(id);
+  (again && !again.disabled ? again : document.getElementById(id.replace(/-(dn|up)-/, (m, d) => (d === "dn" ? "-up-" : "-dn-")))).focus();
+});
+document.querySelectorAll("#periods button").forEach((b) => b.addEventListener("click", () => {
+  period = b.dataset.p; setChecked("#periods", "p", period); remember(); clearHover(); paint();
+}));
+document.querySelectorAll("#levels button").forEach((b) => b.addEventListener("click", () => {
+  level = b.dataset.l; setChecked("#levels", "l", level); remember(); clearHover(); paint();
+}));
+
+/* ---------- init ---------- */
+$("#m-deff").textContent = META.deff;
+$("#m-min").textContent = fmtN(META.minTests);
+document.querySelectorAll(".m-min").forEach((e) => { e.textContent = fmtN(META.minTests); });
+$("#offmap").textContent = META.notOnMap.length
+  ? `Not drawn on the map (no boundary at this scale): ${META.notOnMap.map((cc) => DATA[cc].n).join(", ")}. Use the table.`
+  : "";
+try {
+  const saved = JSON.parse(localStorage.getItem("iqb-map") || "{}");
+  if (saved.period === "a" || saved.period === "d") period = saved.period;
+  if (LEVELS.includes(saved.level)) level = saved.level;
+  if (PROFILE_KEYS.includes(saved.profile)) profile = saved.profile;
+  if (saved.customW) for (const u of META.useCases) {
+    const v = Number(saved.customW[u]);
+    if (Number.isFinite(v)) customW[u] = Math.min(1, Math.max(0, Math.round(v * 10) / 10));
+  }
+} catch (e) { /* storage unavailable */ }
+setChecked("#periods", "p", period);
+setChecked("#levels", "l", level);
+WK = testWeights(profileWeights());
+renderProfiles();
+paint();
+</script>
